@@ -187,6 +187,10 @@
         // ('bottom' & 'left' keywords are not used, 'top' & 'right' are modifier on the bottom/left position)
         position: 'bottom left',
 
+        // Get current position, defaults to 'top' or 'bottom'
+        getPosition: null, 
+
+
         // automatically fit in the viewport even if it means repositioning from the position option
         reposition: true,
 
@@ -246,9 +250,6 @@
         // Specify a DOM element to render the calendar in
         container: undefined,
 
-        // Blur field when date is selected
-        blurFieldOnSelect : true,
-
         // internationalization
         i18n: {
             previousMonth : 'Previous Month',
@@ -260,9 +261,6 @@
 
         // Theme Classname
         theme: null,
-
-        // events array
-        events: [],
 
         // callback function
         onSelect: null,
@@ -287,7 +285,6 @@
     renderDay = function(opts)
     {
         var arr = [];
-        var ariaSelected = 'false';
         if (opts.isEmpty) {
             if (opts.showDaysInNextAndPreviousMonths) {
                 arr.push('is-outside-current-month');
@@ -303,10 +300,6 @@
         }
         if (opts.isSelected) {
             arr.push('is-selected');
-            ariaSelected = 'true';
-        }
-        if (opts.hasEvent) {
-            arr.push('has-event');
         }
         if (opts.isInRange) {
             arr.push('is-inrange');
@@ -317,7 +310,7 @@
         if (opts.isEndRange) {
             arr.push('is-endrange');
         }
-        return '<td data-day="' + opts.day + '" class="' + arr.join(' ') + '" aria-selected="' + ariaSelected + '">' +
+        return '<td data-day="' + opts.day + '" class="' + arr.join(' ') + '">' +
                  '<button class="pika-button pika-day" type="button" ' +
                     'data-pika-year="' + opts.year + '" data-pika-month="' + opts.month + '" data-pika-day="' + opts.day + '">' +
                         opts.day +
@@ -354,13 +347,13 @@
         return '<thead><tr>' + (opts.isRTL ? arr.reverse() : arr).join('') + '</tr></thead>';
     },
 
-    renderTitle = function(instance, c, year, month, refYear, randId)
+    renderTitle = function(instance, c, year, month, refYear)
     {
         var i, j, arr,
             opts = instance._o,
             isMinYear = year === opts.minYear,
             isMaxYear = year === opts.maxYear,
-            html = '<div id="' + randId + '" class="pika-title" role="heading" aria-live="assertive">',
+            html = '<div class="pika-title">',
             monthHtml,
             yearHtml,
             prev = true,
@@ -372,7 +365,6 @@
                 ((isMinYear && i < opts.minMonth) || (isMaxYear && i > opts.maxMonth) ? 'disabled="disabled"' : '') + '>' +
                 opts.i18n.months[i] + '</option>');
         }
-
         monthHtml = '<div class="pika-label">' + opts.i18n.months[month] + '<select class="pika-select pika-select-month" tabindex="-1">' + arr.join('') + '</select></div>';
 
         if (isArray(opts.yearRange)) {
@@ -414,9 +406,9 @@
         return html += '</div>';
     },
 
-    renderTable = function(opts, data, randId)
+    renderTable = function(opts, data)
     {
-        return '<table cellpadding="0" cellspacing="0" class="pika-table" role="grid" aria-labelledby="' + randId + '">' + renderHead(opts) + renderBody(data) + '</table>';
+        return '<table cellpadding="0" cellspacing="0" class="pika-table">' + renderHead(opts) + renderBody(data) + '</table>';
     },
 
 
@@ -445,7 +437,7 @@
                     if (opts.bound) {
                         sto(function() {
                             self.hide();
-                            if (opts.blurFieldOnSelect && opts.field) {
+                            if (opts.field) {
                                 opts.field.blur();
                             }
                         }, 100);
@@ -483,36 +475,6 @@
             }
             else if (hasClass(target, 'pika-select-year')) {
                 self.gotoYear(target.value);
-            }
-        };
-
-        self._onKeyChange = function(e)
-        {
-            e = e || window.event;
-
-            if (self.isVisible()) {
-
-                switch(e.keyCode){
-                    case 13:
-                    case 27:
-                        if (opts.field) {
-                            opts.field.blur();
-                        }
-                        break;
-                    case 37:
-                        e.preventDefault();
-                        self.adjustDate('subtract', 1);
-                        break;
-                    case 38:
-                        self.adjustDate('subtract', 7);
-                        break;
-                    case 39:
-                        self.adjustDate('add', 1);
-                        break;
-                    case 40:
-                        self.adjustDate('add', 7);
-                        break;
-                }
             }
         };
 
@@ -598,7 +560,6 @@
         addEvent(self.el, 'mousedown', self._onMouseDown, true);
         addEvent(self.el, 'touchend', self._onMouseDown, true);
         addEvent(self.el, 'change', self._onChange);
-        addEvent(document, 'keydown', self._onKeyChange);
 
         if (opts.field) {
             if (opts.container) {
@@ -820,30 +781,6 @@
             this.adjustCalendars();
         },
 
-        adjustDate: function(sign, days) {
-
-            var day = this.getDate() || new Date();
-            var difference = parseInt(days)*24*60*60*1000;
-
-            var newDay;
-
-            if (sign === 'add') {
-                newDay = new Date(day.valueOf() + difference);
-            } else if (sign === 'subtract') {
-                newDay = new Date(day.valueOf() - difference);
-            }
-
-            if (hasMoment) {
-                if (sign === 'add') {
-                    newDay = moment(day).add(days, "days").toDate();
-                } else if (sign === 'subtract') {
-                    newDay = moment(day).subtract(days, "days").toDate();
-                }
-            }
-
-            this.setDate(newDay);
-        },
-
         adjustCalendars: function() {
             this.calendars[0] = adjustCalendar(this.calendars[0]);
             for (var c = 1; c < this._o.numberOfMonths; c++) {
@@ -957,8 +894,7 @@
                 maxYear = opts.maxYear,
                 minMonth = opts.minMonth,
                 maxMonth = opts.maxMonth,
-                html = '',
-                randId;
+                html = '';
 
             if (this._y <= minYear) {
                 this._y = minYear;
@@ -973,10 +909,8 @@
                 }
             }
 
-            randId = 'pika-title-' + Math.random().toString(36).replace(/[^a-z]+/g, '').substr(0, 2);
-
             for (var c = 0; c < opts.numberOfMonths; c++) {
-                html += '<div class="pika-lendar">' + renderTitle(this, c, this.calendars[c].year, this.calendars[c].month, this.calendars[0].year, randId) + this.render(this.calendars[c].year, this.calendars[c].month, randId) + '</div>';
+                html += '<div class="pika-lendar">' + renderTitle(this, c, this.calendars[c].year, this.calendars[c].month, this.calendars[0].year) + this.render(this.calendars[c].year, this.calendars[c].month) + '</div>';
             }
 
             this.el.innerHTML = html;
@@ -992,11 +926,6 @@
             if (typeof this._o.onDraw === 'function') {
                 this._o.onDraw(this);
             }
-
-            if (opts.bound) {
-                // let the screen reader user know to use arrow keys
-                opts.field.setAttribute('aria-label', 'Use the arrow keys to pick a date');
-            }
         },
 
         adjustPosition: function()
@@ -1006,7 +935,6 @@
             if (this._o.container) return;
 
             this.el.style.position = 'absolute';
-
             field = this._o.trigger;
             pEl = field;
             width = this.el.offsetWidth;
@@ -1042,9 +970,16 @@
                     this._o.position.indexOf('top') > -1 &&
                     top - height - field.offsetHeight > 0
                 )
-            ) {
+            ) { 
                 top = top - height - field.offsetHeight;
+
+                if(hasClass(this.el, 'pika-position-bottom')) removeClass(this.el, 'pika-position-bottom');
+                if(!hasClass(this.el, 'pika-position-top')) addClass(this.el, 'pika-position-top');
+            } else {
+                if(hasClass(this.el, 'pika-position-top')) removeClass(this.el, 'pika-position-top');
+                if(!hasClass(this.el, 'pika-position-bottom')) addClass(this.el, 'pika-position-bottom');
             }
+            
 
             this.el.style.left = left + 'px';
             this.el.style.top = top + 'px';
@@ -1053,7 +988,7 @@
         /**
          * render HTML for a particular month
          */
-        render: function(year, month, randId)
+        render: function(year, month)
         {
             var opts   = this._o,
                 now    = new Date(),
@@ -1084,7 +1019,6 @@
                 var day = new Date(year, month, 1 + (i - before)),
                     isSelected = isDate(this._d) ? compareDates(day, this._d) : false,
                     isToday = compareDates(day, now),
-                    hasEvent = opts.events.indexOf(day.toDateString()) !== -1 ? true : false,
                     isEmpty = i < before || i >= (days + before),
                     dayNumber = 1 + (i - before),
                     monthNumber = month,
@@ -1113,7 +1047,6 @@
                         day: dayNumber,
                         month: monthNumber,
                         year: yearNumber,
-                        hasEvent: hasEvent,
                         isSelected: isSelected,
                         isToday: isToday,
                         isDisabled: isDisabled,
@@ -1135,7 +1068,7 @@
                     r = 0;
                 }
             }
-            return renderTable(opts, data, randId);
+            return renderTable(opts, data);
         },
 
         isVisible: function()
@@ -1145,14 +1078,14 @@
 
         show: function()
         {
-            if (!this.isVisible()) {
+            if (!this._v) {
+                removeClass(this.el, 'is-hidden');
                 this._v = true;
                 this.draw();
                 if (this._o.bound) {
                     addEvent(document, 'click', this._onClick);
                     this.adjustPosition();
                 }
-                removeClass(this.el, 'is-hidden');
                 if (typeof this._o.onOpen === 'function') {
                     this._o.onOpen.call(this);
                 }

@@ -980,13 +980,13 @@
                     top - height - field.offsetHeight > 0
                 )
             ) { 
-                // top = top - height - field.offsetHeight;
+                top = top - height - field.offsetHeight;
 
-                if(this._o.margin) top = (top - height - field.offsetHeight) - this._o.margin;
+                if(this._o.margin) top = top - this._o.margin;
                 if(hasClass(this.el, 'pika-position-bottom')) removeClass(this.el, 'pika-position-bottom');
                 if(!hasClass(this.el, 'pika-position-top')) addClass(this.el, 'pika-position-top');
             } else {
-                // if(this._o.margin) top = (top - height - field.offsetHeight) - this._o.margin;
+                if(this._o.margin) top = top + this._o.margin;
                 if(hasClass(this.el, 'pika-position-top')) removeClass(this.el, 'pika-position-top');
                 if(!hasClass(this.el, 'pika-position-bottom')) addClass(this.el, 'pika-position-bottom');
             }

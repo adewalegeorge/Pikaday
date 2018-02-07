@@ -184,11 +184,15 @@
         bound: undefined,
 
         // position of the datepicker, relative to the field (default to bottom & left)
-        // ('bottom' & 'left' keywords are not used, 'top' & 'right' are modifier on the bottom/left position)
+        // ('bottom' & 'left' keywords are not used, 'top' & 'right' are modifier on the bottom/left/ or just center position)
         position: 'bottom left',
 
         // Get current position, defaults to 'top' or 'bottom'
         getPosition: null, 
+
+
+        // Add space between datefield and datepicker
+        margin: null, 
 
 
         // automatically fit in the viewport even if it means repositioning from the position option
@@ -965,17 +969,24 @@
             ) {
                 left = left - width + field.offsetWidth;
             }
+
+            if (this._o.position.indexOf('center') > -1) {
+                left = left - ((width / 2) - (field.offsetWidth / 2));
+            }
+
             if ((this._o.reposition && top + height > viewportHeight + scrollTop) ||
                 (
                     this._o.position.indexOf('top') > -1 &&
                     top - height - field.offsetHeight > 0
                 )
             ) { 
-                top = top - height - field.offsetHeight;
+                // top = top - height - field.offsetHeight;
 
+                if(this._o.margin) top = (top - height - field.offsetHeight) - this._o.margin;
                 if(hasClass(this.el, 'pika-position-bottom')) removeClass(this.el, 'pika-position-bottom');
                 if(!hasClass(this.el, 'pika-position-top')) addClass(this.el, 'pika-position-top');
             } else {
+                // if(this._o.margin) top = (top - height - field.offsetHeight) - this._o.margin;
                 if(hasClass(this.el, 'pika-position-top')) removeClass(this.el, 'pika-position-top');
                 if(!hasClass(this.el, 'pika-position-bottom')) addClass(this.el, 'pika-position-bottom');
             }
